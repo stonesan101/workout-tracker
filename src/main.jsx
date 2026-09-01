@@ -12,6 +12,25 @@ const initialGroups = {
 };
 
 const storageKey = "workout-tracker-groups";
+const weightStep = 2.5;
+
+function getEffortScore(sets) {
+    const completedSets = sets.filter((s) => s.weight !== "" && s.reps !== "");
+    if (completedSets.length === 0) return null;
+
+    const total = completedSets.reduce((sum, s) => sum + Number(s.weight) * Number(s.reps), 0);
+    return (total / completedSets.length).toFixed(1);
+}
+
+function getOneRepMax(sets) {
+    const bestSet = sets.reduce((best, current) => {
+        if (current.weight === "" || current.reps === "") return best;
+        const current1RM = Number(current.weight) * (1 + Number(current.reps) / 30);
+        return current1RM > best ? current1RM : best;
+    }, 0);
+
+    return bestSet > 0 ? bestSet.toFixed(1) : null;
+}
 
 export default function WorkoutTracker() {
     const [groups, setGroups] = useState(() => {
@@ -72,6 +91,16 @@ export default function WorkoutTracker() {
     // that exercise's sets to find the right row, AND spreading the field
     // that changed (weight or reps) onto that one set.
     function updateSet(groupName, exerciseIndex, setIndex, field, value) {
+        let nextValue = value;
+
+        if (field === "weight") {
+            const parsed = value === "" ? "" : Math.max(0, Math.round(Number(value) / weightStep) * weightStep);
+            nextValue = parsed === "" ? "" : parsed.toFixed(1).replace(/\.0$/, "");
+        } else if (field === "reps") {
+            const parsed = value === "" ? "" : Math.max(0, Math.floor(Number(value)));
+            nextValue = parsed === "" ? "" : String(parsed);
+        }
+
         setGroups({
             ...groups,
             [groupName]: {
@@ -81,7 +110,7 @@ export default function WorkoutTracker() {
                         ? {
                             ...ex,
                             sets: ex.sets.map((s, si) =>
-                                si === setIndex ? { ...s, [field]: value } : s
+                                si === setIndex ? { ...s, [field]: nextValue } : s
                             ),
                         }
                         : ex
@@ -168,6 +197,8 @@ export default function WorkoutTracker() {
                                                             <td className="pr-3 py-1">
                                                                 <input
                                                                     type="number"
+                                                                    min="0"
+                                                                    step={weightStep}
                                                                     value={s.weight}
                                                                     onChange={(e) =>
                                                                         updateSet(
@@ -185,6 +216,8 @@ export default function WorkoutTracker() {
                                                             <td className="pr-3 py-1">
                                                                 <input
                                                                     type="number"
+                                                                    min="0"
+                                                                    step="1"
                                                                     value={s.reps}
                                                                     onChange={(e) =>
                                                                         updateSet(
@@ -221,6 +254,17 @@ export default function WorkoutTracker() {
                                             >
                                                 + Add set
                                             </button>
+
+                                            {(getEffortScore(ex.sets) || getOneRepMax(ex.sets)) && (
+                                                <div className="mt-2 rounded-md bg-stone-950/60 border border-stone-800 px-3 py-2 text-xs text-stone-300">
+                                                    {getEffortScore(ex.sets) && (
+                                                        <p>Effort: {getEffortScore(ex.sets)}</p>
+                                                    )}
+                                                    {getOneRepMax(ex.sets) && (
+                                                        <p>1RM: {getOneRepMax(ex.sets)} lb</p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
