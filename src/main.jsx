@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dumbbell, Plus, Trash2 } from "lucide-react";
 import { createRoot } from "react-dom/client";
 
@@ -11,9 +11,18 @@ const initialGroups = {
     Core: { exercises: [] },
 };
 
+const storageKey = "workout-tracker-groups";
+
 export default function WorkoutTracker() {
-    const [groups, setGroups] = useState(initialGroups);
+    const [groups, setGroups] = useState(() => {
+        const saved = localStorage.getItem(storageKey);
+        return saved ? JSON.parse(saved) : initialGroups;
+    });
     const [workout, setWorkout] = useState({});
+
+    useEffect(() => {
+        localStorage.setItem(storageKey, JSON.stringify(groups));
+    }, [groups]);
 
     function handleDraftChange(groupName, value) {
         setWorkout({ ...workout, [groupName]: value });
