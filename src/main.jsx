@@ -14,12 +14,22 @@ const initialGroups = {
 const storageKey = "workout-tracker-groups";
 const weightStep = 2.5;
 
-function getEffortScore(sets) {
+function capitalizeWords(value) {
+    return value
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join(" ");
+}
+
+/*function getEffortScore(sets) {
     const completedSets = sets.filter((s) => s.weight !== "" && s.reps !== "");
     if (completedSets.length === 0) return null;
 
-    const total = completedSets.reduce((sum, s) => sum + Number(s.weight) * Number(s.reps), 0);
-    return (total / completedSets.length).toFixed(1);
+    const totalIntensity = completedSets.reduce((sum, s) => sum + Number(s.weight) * Number(s.reps), 0);
+
+    return (totalIntensity / completedSets.length).toFixed(1);
 }
 
 function getOneRepMax(sets) {
@@ -30,6 +40,24 @@ function getOneRepMax(sets) {
     }, 0);
 
     return bestSet > 0 ? bestSet.toFixed(1) : null;
+}*/
+
+function getMachineAdjustedMetrics(ex) {
+    const base = Number(ex.baseWeight || 0);
+    const completedSets = ex.sets.filter((s) => s.weight !== "" && s.reps !== "");
+    if (completedSets.length === 0) return { effort: null, oneRepMax: null, recommendedFiveRep: null };
+
+    const effort = (completedSets.reduce((sum, s) => sum + (Number(s.weight) + base) * Number(s.reps), 0) / completedSets.length).toFixed(1);
+    const oneRepMax = completedSets.reduce((best, current) => {
+        const current1RM = (Number(current.weight) + base) * (1 + Number(current.reps) / 30);
+        return current1RM > best ? current1RM : best;
+    }, 0);
+
+    return {
+        effort,
+        oneRepMax: oneRepMax > 0 ? oneRepMax.toFixed(1) - base : null,
+        recommendedFiveRep: oneRepMax > 0 ? (oneRepMax * 0.86).toFixed(1) - base : null,
+    };
 }
 
 export default function WorkoutTracker() {
@@ -48,7 +76,7 @@ export default function WorkoutTracker() {
     }
 
     function addExercise(groupName) {
-        const name = (workout[groupName] || "").trim();
+        const name = capitalizeWords((workout[groupName] || "").trim());
         if (!name) return;
 
         // Exercises are now objects, not plain strings — each one needs its
@@ -58,7 +86,7 @@ export default function WorkoutTracker() {
             ...groups,
             [groupName]: {
                 ...groups[groupName],
-                exercises: [...groups[groupName].exercises, { name, sets: [] }],
+                exercises: [...groups[groupName].exercises, { name, baseWeight: 0, sets: [] }],
             },
         });
 
@@ -133,6 +161,19 @@ export default function WorkoutTracker() {
         });
     }
 
+    function updateExerciseBaseWeight(groupName, exerciseIndex, value) {
+        const nextValue = value === "" ? "" : Math.max(0, Number(value));
+        setGroups({
+            ...groups,
+            [groupName]: {
+                ...groups[groupName],
+                exercises: groups[groupName].exercises.map((ex, i) =>
+                    i === exerciseIndex ? { ...ex, baseWeight: nextValue } : ex
+                ),
+            },
+        });
+    }
+
     return (
         <div className="min-h-screen bg-stone-950 text-stone-100 p-6 md:p-10">
             <div className="max-w-3xl mx-auto">
@@ -170,7 +211,20 @@ export default function WorkoutTracker() {
                                             key={exerciseIndex}
                                             className="pl-3 border-l-2 border-stone-700"
                                         >
-                                            <p className="text-sm text-stone-200 mb-1">{ex.name}</p>
+                                            <div className="mb-1 flex items-center gap-2">
+                                                <p className="text-sm text-stone-200">{ex.name}</p>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step={weightStep}
+                                                    value={ex.baseWeight ?? 0}
+                                                    onChange={(e) =>
+                                                        updateExerciseBaseWeight(groupName, exerciseIndex, e.target.value)
+                                                    }
+                                                    className="w-20 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="base"
+                                                />
+                                            </div>
 
                                             {ex.sets.length > 0 && (
                                                 <table className="text-xs mb-1">
@@ -255,16 +309,17 @@ export default function WorkoutTracker() {
                                                 + Add set
                                             </button>
 
-                                            {(getEffortScore(ex.sets) || getOneRepMax(ex.sets)) && (
+                                            {(() => {
+                                                const metrics = getMachineAdjustedMetrics(ex);
+                                                return metrics.effort || metrics.oneRepMax ? (
                                                 <div className="mt-2 rounded-md bg-stone-950/60 border border-stone-800 px-3 py-2 text-xs text-stone-300">
-                                                    {getEffortScore(ex.sets) && (
-                                                        <p>Effort: {getEffortScore(ex.sets)}</p>
+                                                    {metrics.effort && (
+                                                        <p>Effort: {metrics.effort}</p>
                                                     )}
-                                                    {getOneRepMax(ex.sets) && (
-                                                        <p>1RM: {getOneRepMax(ex.sets)} lb</p>
-                                                    )}
+                                                    {metrics.oneRepMax && <p>1RM: {metrics.oneRepMax} lb</p>}{<p> Five Rep: {metrics.recommendedFiveRep} lb</p>}
                                                 </div>
-                                            )}
+                                                ) : null;
+                                            })()}
                                         </div>
                                     ))}
                                 </div>
