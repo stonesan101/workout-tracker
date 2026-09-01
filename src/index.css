@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -70,7 +72,6 @@ h1,
 h2 {
   font-family: var(--heading);
   font-weight: 500;
-  color: var(--text-h);
 }
 
 h1 {
@@ -104,12 +105,10 @@ p {
   border: 2px solid var(--accent-border);
   width: fit-content;
   display: grid;
-  grid-gap: 16px;
-  padding: 16px;
+
 }
 section{
-  border: 2px solid var(--accent-border);
-  border-radius: 10%;
+
   width: 100%;
 
 }
