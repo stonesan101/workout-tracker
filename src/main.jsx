@@ -12,7 +12,7 @@ const initialGroups = {
 };
 
 const storageKey = "workout-tracker-groups";
-const weightStep = 2.5;
+const weightStep = .5;
 
 function capitalizeWords(value) {
     return value
@@ -67,6 +67,13 @@ export default function WorkoutTracker() {
     });
     const [workout, setWorkout] = useState({});
     const [editingExercise, setEditingExercise] = useState(null);
+    const [expandedGroups, setExpandedGroups] = useState(() =>
+        Object.keys(initialGroups).reduce((acc, groupName) => {
+            acc[groupName] = false;
+            return acc;
+        }, {}),
+    );
+    const [expandedWorkouts, setExpandedWorkouts] = useState({});
 
     useEffect(() => {
         localStorage.setItem(storageKey, JSON.stringify(groups));
@@ -88,6 +95,10 @@ export default function WorkoutTracker() {
                 ...groups[groupName],                 exercises: [...groups[groupName].exercises, {name, baseWeight: 0, machineSetting: "", sets: []}],
             },
         });
+        setExpandedWorkouts((prev) => ({
+            ...prev,
+            [`${groupName}:${groups[groupName].exercises.length}`]: true,
+        }));
 
         setWorkout({...workout, [groupName]: ""});
     }
@@ -174,6 +185,15 @@ export default function WorkoutTracker() {
         });
     }
 
+    function toggleGroup(groupName) {
+        setExpandedGroups((prev) => ({...prev, [groupName]: !prev[groupName]}));
+    }
+
+    function toggleWorkout(groupName, exerciseIndex) {
+        const key = `${groupName}:${exerciseIndex}`;
+        setExpandedWorkouts((prev) => ({...prev, [key]: !prev[key]}));
+    }
+
     return (<div className="min-h-screen bg-stone-950 text-stone-100 p-6 md:p-10">
         <div className="max-w-3xl mx-auto">
             <header className="flex items-center gap-3 mb-8">
@@ -195,11 +215,18 @@ export default function WorkoutTracker() {
                     key={groupName}
                     className="rounded-xl border border-stone-800 bg-stone-900/60 px-4 py-3"
                 >
-                    <h2 className="font-medium text-stone-100 mb-2">
-                        {groupName}
-                    </h2>
+                    <button
+                        type="button"
+                        onClick={() => toggleGroup(groupName)}
+                        className="mb-2 w-full text-left font-medium text-stone-100 flex items-center justify-between hover:text-amber-300"
+                    >
+                        <span>{groupName}</span>
+                        <span className="text-xs text-stone-400">
+                            {expandedGroups[groupName] ? "Hide" : "Show"}
+                        </span>
+                    </button>
 
-                    {group.exercises.length > 0 && (<div className="mb-3 space-y-3">
+                    {expandedGroups[groupName] && group.exercises.length > 0 && (<div className="mb-3 space-y-3">
                         {/* exerciseIndex (the "i" here) is what every set-level
                       function above uses to find its way back to this
                       exact exercise. */}
@@ -231,116 +258,130 @@ export default function WorkoutTracker() {
                                         </button>
                                     </>
                                 )}
-                            </div>
-                            <label className="mb-1 flex items-center gap-2">Base Weight
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step={weightStep}
-                                    value={ex.baseWeight ?? 0}
-                                    onChange={(e) => updateExerciseBaseWeight(groupName, exerciseIndex, e.target.value)}
-                                    className="w-20 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
-                                    placeholder="base"
-                                />
-                            </label>
-                            <label className="mb-1 flex items-center gap-2">Machine Setting
-                                <input
-                                    type="text"
-                                    value={ex.machineSetting ?? 0}
-                                    onChange={(e) => updateExerciseMachineSetting(groupName, exerciseIndex, e.target.value)}
-                                    className="w-28 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
-                                />
-                            </label>
 
-                            {ex.sets.length > 0 && (<table className="text-xs mb-1">
-                                <thead>
-                                <tr className="text-stone-500">
-                                    <th className="text-left font-medium pr-3 py-1 w-8">
-                                        Set
-                                    </th>
-                                    <th className="text-left font-medium pr-3 py-1">
-                                        Weight
-                                    </th>
-                                    <th className="text-left font-medium pr-3 py-1">
-                                        Reps
-                                    </th>
-                                    <th className="w-6"></th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {ex.sets.map((s, setIndex) => (<tr key={setIndex}>
-                                    <td className="pr-3 py-1 text-stone-500 font-mono">
-                                        {setIndex + 1}
-                                    </td>
-                                    <td className="pr-3 py-1">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleWorkout(groupName, exerciseIndex)}
+                                    className="ml-auto text-xs text-stone-400 hover:text-amber-300"
+                                >
+                                    {expandedWorkouts[`${groupName}:${exerciseIndex}`] ? "Hide" : "Show"}
+                                </button>
+                            </div>
+                            {expandedWorkouts[`${groupName}:${exerciseIndex}`] && (
+                                <>
+                                    <label className="mb-1 flex items-center gap-2">Base Weight
                                         <input
                                             type="number"
                                             min="0"
                                             step={weightStep}
-                                            value={s.weight}
-                                            onChange={(e) => updateSet(groupName, exerciseIndex, setIndex, "weight", e.target.value)}
-                                            placeholder="lb"
-                                            className="w-16 bg-stone-800 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-amber-500/50"
+                                            value={ex.baseWeight ?? 0}
+                                            onChange={(e) => updateExerciseBaseWeight(groupName, exerciseIndex, e.target.value)}
+                                            className="w-20 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
+                                            placeholder="base"
                                         />
-                                    </td>
-                                    <td className="pr-3 py-1">
+                                    </label>
+                                    <label className="mb-1 flex items-center gap-2">Machine Setting
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            value={s.reps}
-                                            onChange={(e) => updateSet(groupName, exerciseIndex, setIndex, "reps", e.target.value)}
-                                            placeholder="reps"
-                                            className="w-16 bg-stone-800 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-amber-500/50"
+                                            type="text"
+                                            value={ex.machineSetting ?? 0}
+                                            onChange={(e) => updateExerciseMachineSetting(groupName, exerciseIndex, e.target.value)}
+                                            className="w-28 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
                                         />
-                                    </td>
-                                    <td className="py-1 text-right">
-                                        <button
-                                            onClick={() => removeSet(groupName, exerciseIndex, setIndex)}
-                                            className="text-stone-600 hover:text-red-400"
-                                        >
-                                            <Trash2 className="w-3 h-3"/>
-                                        </button>
-                                    </td>
-                                </tr>))}
-                                </tbody>
-                            </table>)}
+                                    </label>
 
-                            <button
-                                onClick={() => addSet(groupName, exerciseIndex)}
-                                className="text-xs text-stone-500 hover:text-amber-400"
-                            >
-                                + Add set
-                            </button>
+                                    {ex.sets.length > 0 && (<table className="text-xs mb-1">
+                                        <thead>
+                                        <tr className="text-stone-500">
+                                            <th className="text-left font-medium pr-3 py-1 w-8">
+                                                Set
+                                            </th>
+                                            <th className="text-left font-medium pr-3 py-1">
+                                                Weight
+                                            </th>
+                                            <th className="text-left font-medium pr-3 py-1">
+                                                Reps
+                                            </th>
+                                            <th className="w-6"></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {ex.sets.map((s, setIndex) => (<tr key={setIndex}>
+                                            <td className="pr-3 py-1 text-stone-500 font-mono">
+                                                {setIndex + 1}
+                                            </td>
+                                            <td className="pr-3 py-1">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step={weightStep}
+                                                    value={s.weight}
+                                                    onChange={(e) => updateSet(groupName, exerciseIndex, setIndex, "weight", e.target.value)}
+                                                    placeholder="lb"
+                                                    className="w-16 bg-stone-800 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </td>
+                                            <td className="pr-3 py-1">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="1"
+                                                    value={s.reps}
+                                                    onChange={(e) => updateSet(groupName, exerciseIndex, setIndex, "reps", e.target.value)}
+                                                    placeholder="reps"
+                                                    className="w-16 bg-stone-800 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </td>
+                                            <td className="py-1 text-right">
+                                                <button
+                                                    onClick={() => removeSet(groupName, exerciseIndex, setIndex)}
+                                                    className="text-stone-600 hover:text-red-400"
+                                                >
+                                                    <Trash2 className="w-3 h-3"/>
+                                                </button>
+                                            </td>
+                                        </tr>))}
+                                        </tbody>
+                                    </table>)}
 
-                            {(() => {
-                                const metrics = getMachineAdjustedMetrics(ex);
-                                return metrics.effort || metrics.oneRepMax ? (<div
-                                    className="mt-2 rounded-md bg-stone-950/60 border border-stone-800 px-3 py-2 text-xs text-stone-300">
-                                    {metrics.effort && (<p>Effort: {metrics.effort}</p>)}
-                                    {metrics.oneRepMax && <p>1RM: {metrics.oneRepMax} lb</p>}{<p> Five
-                                    Rep: {metrics.recommendedFiveRep} lb</p>}
-                                </div>) : null;
-                            })()}
+                                    <button
+                                        onClick={() => addSet(groupName, exerciseIndex)}
+                                        className="text-xs text-stone-500 hover:text-amber-400"
+                                    >
+                                        + Add set
+                                    </button>
+
+                                    {(() => {
+                                        const metrics = getMachineAdjustedMetrics(ex);
+                                        return metrics.effort || metrics.oneRepMax ? (<div
+                                            className="mt-2 rounded-md bg-stone-950/60 border border-stone-800 px-3 py-2 text-xs text-stone-300">
+                                            {metrics.effort && (<p>Effort: {metrics.effort}</p>)}
+                                            {metrics.oneRepMax && <p>1RM: {metrics.oneRepMax} lb</p>}{<p> Five
+                                            Rep: {metrics.recommendedFiveRep} lb</p>}
+                                        </div>) : null;
+                                    })()}
+                                </>
+                            )}
                         </div>))}
                     </div>)}
 
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={workout[groupName] || ""}
-                            onChange={(e) => handleDraftChange(groupName, e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && addExercise(groupName)}
-                            placeholder={`Add ${groupName.toLowerCase()} exercise…`}
-                            className="flex-1 bg-stone-800 rounded-md px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/50 placeholder:text-stone-600"
-                        />
-                        <button
-                            onClick={() => addExercise(groupName)}
-                            className="flex items-center gap-1 bg-amber-500 text-stone-950 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-amber-400 transition-colors"
-                        >
-                            <Plus className="w-3.5 h-3.5"/> Add
-                        </button>
-                    </div>
+                    {expandedGroups[groupName] && (
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={workout[groupName] || ""}
+                                onChange={(e) => handleDraftChange(groupName, e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && addExercise(groupName)}
+                                placeholder={`Add ${groupName.toLowerCase()} exercise…`}
+                                className="flex-1 bg-stone-800 rounded-md px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500/50 placeholder:text-stone-600"
+                            />
+                            <button
+                                onClick={() => addExercise(groupName)}
+                                className="flex items-center gap-1 bg-amber-500 text-stone-950 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-amber-400 transition-colors"
+                            >
+                                <Plus className="w-3.5 h-3.5"/> Add
+                            </button>
+                        </div>
+                    )}
                 </section>))}
             </div>
         </div>
