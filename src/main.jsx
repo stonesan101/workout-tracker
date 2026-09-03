@@ -23,25 +23,6 @@ function capitalizeWords(value) {
         .join(" ");
 }
 
-/*function getEffortScore(sets) {
-    const completedSets = sets.filter((s) => s.weight !== "" && s.reps !== "");
-    if (completedSets.length === 0) return null;
-
-    const totalIntensity = completedSets.reduce((sum, s) => sum + Number(s.weight) * Number(s.reps), 0);
-
-    return (totalIntensity / completedSets.length).toFixed(1);
-}
-
-function getOneRepMax(sets) {
-    const bestSet = sets.reduce((best, current) => {
-        if (current.weight === "" || current.reps === "") return best;
-        const current1RM = Number(current.weight) * (1 + Number(current.reps) / 30);
-        return current1RM > best ? current1RM : best;
-    }, 0);
-
-    return bestSet > 0 ? bestSet.toFixed(1) : null;
-}*/
-
 function getMachineAdjustedMetrics(ex) {
     const base = Number(ex.baseWeight || 0);
     const completedSets = ex.sets.filter((s) => s.weight !== "" && s.reps !== "");
@@ -355,8 +336,8 @@ export default function WorkoutTracker() {
                                         return metrics.effort || metrics.oneRepMax ? (<div
                                             className="mt-2 rounded-md bg-stone-950/60 border border-stone-800 px-3 py-2 text-xs text-stone-300">
                                             {metrics.effort && (<p>Effort: {metrics.effort}</p>)}
-                                            {metrics.oneRepMax && <p>1RM: {metrics.oneRepMax} lb</p>}{<p> Five
-                                            Rep: {metrics.recommendedFiveRep} lb</p>}
+                                            {metrics.oneRepMax && <p>1RM: {metrics.oneRepMax.toFixed(1)} lb</p>}{<p> Five
+                                            Rep: {metrics.recommendedFiveRep.toFixed(1)} lb</p>}
                                         </div>) : null;
                                     })()}
                                 </>
