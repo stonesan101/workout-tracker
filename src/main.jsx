@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import {Dumbbell, Plus} from "lucide-react";
 import {createRoot} from "react-dom/client";
 import WorkoutExercise from "./WorkoutExercise.jsx";
-import {createExercise, createSet, initialGroups, loadGroups, saveGroups, getCurrentPersonalBest, appendPersonalBest, getPersonalBestHistory} from "./storage.js";
+import {createExercise, createSet, initialGroups, loadGroups, saveGroups, getCurrentPersonalBest, appendPersonalBest, getPersonalBestHistory, isBetterPersonalBest} from "./storage.js";
 
 const weightStep = .5;
 
@@ -170,13 +170,11 @@ export default function WorkoutTracker() {
         if (metrics.oneRepMax === null) return; // nothing logged this session
 
         const newE1RM = Number(metrics.oneRepMax);
-        const currentPB = getCurrentPersonalBest(ex, "e1RM");
-        if (currentPB && newE1RM <= currentPB.value) return; // not a new PB
 
         const bestSet = getBestSet(ex);
         const completedSets = ex.sets.filter((s) => s.weight !== "" && s.reps !== "");
 
-        const updatedExercise = appendPersonalBest(ex, {
+        const candidatePB = {
             type: "e1RM",
             value: newE1RM,
             achievedAt: new Date().toISOString(),
@@ -184,7 +182,12 @@ export default function WorkoutTracker() {
                 sets: completedSets.map((s) => ({weight: s.weight, reps: s.reps})),
                 bestSet: {weight: bestSet.weight, reps: bestSet.reps},
             },
-        });
+        };
+
+        const currentPB = getCurrentPersonalBest(ex, "e1RM");
+        if (!isBetterPersonalBest(candidatePB, currentPB)) return; // not a new PB
+
+        const updatedExercise = appendPersonalBest(ex, candidatePB);
 
         setGroups({
             ...groups, [groupName]: {

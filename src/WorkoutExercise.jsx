@@ -141,9 +141,7 @@ export default function WorkoutExercise({
                         className="text-xs text-stone-500 hover:text-amber-400">
                     + Add set
                 </button>
-                {currentPB && (<span className="text-xs text-amber-400 font-mono">
-                PB: {currentPB.source.bestSet.reps}@{currentPB.source.bestSet.weight}
-            </span>)}
+
             </div>
 
             {(() => {
@@ -153,6 +151,9 @@ export default function WorkoutExercise({
                     {metrics.effort && (<p>Effort: {metrics.effort}</p>)}
                     {metrics.oneRepMax && <p>1RM: {metrics.oneRepMax.toFixed(1)} lb</p>}
                     {metrics.recommendedFiveRep && <p>Five Rep: {metrics.recommendedFiveRep.toFixed(1)} lb</p>}
+                    {currentPB && (<p className="text-xs text-amber-400 font-mono">
+                PB: {currentPB.source.bestSet.reps}@{currentPB.source.bestSet.weight}
+            </p>)}
                 </div>) : null;
             })()}
         </>)}
