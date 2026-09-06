@@ -54,6 +54,7 @@ export default function WorkoutExercise({
         </div>
 
         {expanded && (<>
+            <div className="mb-1 flex items-center  justify-between gap-2">
             <label className="mb-1 flex items-center gap-2">Base Weight
                 <input
                     type="number"
@@ -64,6 +65,7 @@ export default function WorkoutExercise({
                     className="w-20 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
                     placeholder="base"
                 />
+            </label>
                 <button
                     type="button"
                     onClick={() => finishExercise(groupName, exerciseIndex)}
@@ -71,24 +73,24 @@ export default function WorkoutExercise({
                 >
                     Finished
                 </button>
-            </label>
-
-
+            </div>
+            <div className="mb-1 flex items-center  justify-between gap-2">
             <label className="mb-1 flex items-center gap-2">Machine Setting
                 <input
-                    type="text"
+                    type="number"
                     value={ex.machineSetting ?? 0}
                     onChange={(e) => updateExerciseMachineSetting(groupName, exerciseIndex, e.target.value)}
                     className="w-28 bg-stone-800 rounded px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
+            </label>
                 <button
                     type="button"
                     onClick={onShowHistory}
-                    className="text-xs text-stone-400 hover:text-amber-300 underline"
+                    className="text-xs bg-emerald-600 text-stone-950 font-medium px-2 py-1 rounded-md hover:bg-emerald-500 transition-colors"
                 >
                     History
                 </button>
-            </label>
+</div>
 
             {ex.sets.length > 0 && (<table className="text-xs mb-1">
                 <thead>

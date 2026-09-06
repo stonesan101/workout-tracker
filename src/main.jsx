@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import {Dumbbell, Plus} from "lucide-react";
 import {createRoot} from "react-dom/client";
 import WorkoutExercise from "./WorkoutExercise.jsx";
-import {createExercise, createSet, initialGroups, loadGroups, saveGroups, getCurrentPersonalBest, appendPersonalBest, getPersonalBestHistory, isBetterPersonalBest} from "./storage.js";
+import {createExercise, createSet, initialGroups, loadGroups, saveGroups, getCurrentPersonalBest, appendPersonalBest, getPersonalBestHistory, getPersonalBestWeight, isPBBetter} from "./storage.js";
 
 const weightStep = .5;
 
@@ -164,30 +164,45 @@ export default function WorkoutTracker() {
             },
         });
     }
+    function getBestSetForPB(ex) {
+        const base = Number(ex.baseWeight || 0);
+        const completedSets = ex.sets.filter((s) => s.weight !== "" && s.reps !== "");
+        if (completedSets.length === 0) return null;
+
+        return completedSets.reduce((best, current) => {
+            const effectiveWeight = Number(current.weight) + base;
+            const oneRepMax = effectiveWeight * (1 + Number(current.reps) / 30);
+            const candidate = {...current, effectiveWeight, oneRepMax};
+            if (!best) return candidate;
+            return candidate.effectiveWeight !== best.effectiveWeight
+                ? (candidate.effectiveWeight > best.effectiveWeight ? candidate : best)
+                : (candidate.oneRepMax > best.oneRepMax ? candidate : best);
+        }, null);
+    }
+
     function finishExercise(groupName, exerciseIndex) {
         const ex = groups[groupName].exercises[exerciseIndex];
-        const metrics = getMachineAdjustedMetrics(ex);
-        if (metrics.oneRepMax === null) return; // nothing logged this session
+        const bestSet = getBestSetForPB(ex);
+        if (!bestSet) return; // nothing logged this session
 
-        const newE1RM = Number(metrics.oneRepMax);
+        const currentPB = getCurrentPersonalBest(ex, "e1RM");
+        const candidate = {weight: Number(bestSet.weight), value: bestSet.oneRepMax};
+        const bestCandidate = currentPB
+            ? {weight: getPersonalBestWeight(currentPB), value: currentPB.value}
+            : null;
 
-        const bestSet = getBestSet(ex);
+        if (bestCandidate && !isPBBetter(candidate, bestCandidate)) return; // not a new PB
+
         const completedSets = ex.sets.filter((s) => s.weight !== "" && s.reps !== "");
-
-        const candidatePB = {
+        const updatedExercise = appendPersonalBest(ex, {
             type: "e1RM",
-            value: newE1RM,
+            value: bestSet.oneRepMax,
             achievedAt: new Date().toISOString(),
             source: {
                 sets: completedSets.map((s) => ({weight: s.weight, reps: s.reps})),
                 bestSet: {weight: bestSet.weight, reps: bestSet.reps},
             },
-        };
-
-        const currentPB = getCurrentPersonalBest(ex, "e1RM");
-        if (!isBetterPersonalBest(candidatePB, currentPB)) return; // not a new PB
-
-        const updatedExercise = appendPersonalBest(ex, candidatePB);
+        });
 
         setGroups({
             ...groups, [groupName]: {
