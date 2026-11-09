@@ -86,6 +86,19 @@ describe("expanding exercises", () => {
         await user.click(screen.getByRole("button", {name: "Collapse Bench"}));
         expect(screen.getByText(/PB 5 @ 100/)).toBeInTheDocument();
     });
+
+    it("shows an estimated 5-rep max next to the PB, open or collapsed", async () => {
+        const user = await setup();
+        await addExercise(user, "bench");
+        await user.click(screen.getByRole("button", {name: "+ Add set"}));
+        await logSet(user, 1, "100", "5");
+        await user.click(screen.getByRole("button", {name: "Finished"}));
+        // 100 × (1 + 5/30) × 0.86 = 100.33 -> 100.5
+        expect(screen.getByText("PB: 5 @ 100 lb · 5RM 100.5 lb")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", {name: "Collapse Bench"}));
+        expect(screen.getByText(/PB 5 @ 100 lb · 5RM 100.5 lb/)).toBeInTheDocument();
+    });
 });
 
 describe("weight entry", () => {

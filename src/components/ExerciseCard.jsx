@@ -4,6 +4,7 @@ import SetTable from "./SetTable.jsx";
 import ExerciseStats from "./ExerciseStats.jsx";
 import {getLastSession} from "../lib/sessions.js";
 import {getCurrentPersonalBest} from "../lib/personalBests.js";
+import {getPersonalBestFiveRepMax} from "../lib/metrics.js";
 import {formatDate, formatSet} from "../lib/format.js";
 import {
     deleteIconButtonClass,
@@ -24,7 +25,7 @@ function finishMessage(result) {
 function summaryText(exercise, lastSession) {
     const pb = getCurrentPersonalBest(exercise, "e1RM");
     const parts = [];
-    if (pb) parts.push(`PB ${formatSet(pb.source.bestSet)} lb`);
+    if (pb) parts.push(`PB ${formatSet(pb.source.bestSet)} lb`, `5RM ${getPersonalBestFiveRepMax(exercise)} lb`);
     if (lastSession) parts.push(`last ${formatDate(lastSession.finishedAt)}`);
     return parts.length ? parts.join(" · ") : "No sessions yet";
 }

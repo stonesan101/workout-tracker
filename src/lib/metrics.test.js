@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {getMachineAdjustedMetrics} from "./metrics.js";
+import {getMachineAdjustedMetrics, getPersonalBestFiveRepMax} from "./metrics.js";
 
 describe("getMachineAdjustedMetrics", () => {
     it("is empty with no completed sets", () => {
@@ -11,5 +11,23 @@ describe("getMachineAdjustedMetrics", () => {
         expect(metrics.effort).toBe("700.0");
         expect(metrics.oneRepMax).toBeCloseTo(120);
         expect(metrics.recommendedFiveRep).toBeCloseTo(120 * 0.86);
+    });
+});
+
+describe("getPersonalBestFiveRepMax", () => {
+    function withPB(value, baseWeight = "") {
+        return {baseWeight, personalBests: [{id: "a", type: "e1RM", value, achievedAt: "2026-10-01", source: {bestSet: {weight: "195", reps: "3"}}}]};
+    }
+
+    it("estimates the 5-rep weight from the PB's e1RM, rounded to 0.5", () => {
+        expect(getPersonalBestFiveRepMax(withPB(214.5))).toBe("184.5"); // 214.5 × 0.86 = 184.47
+    });
+
+    it("reports it net of the machine's base weight", () => {
+        expect(getPersonalBestFiveRepMax(withPB(214.5, "20"))).toBe("164.5");
+    });
+
+    it("is null with no PB", () => {
+        expect(getPersonalBestFiveRepMax({personalBests: []})).toBeNull();
     });
 });
